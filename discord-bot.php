@@ -66,7 +66,7 @@ class DiscordBot {
     /**
      * Get recent messages from the channel
      */
-    private function getChannelMessages($limit = 5) {
+    public function getChannelMessages($limit = 5) {
         $url = "https://discord.com/api/v10/channels/{$this->channelId}/messages?limit={$limit}";
         
         $headers = [
@@ -95,7 +95,7 @@ class DiscordBot {
     /**
      * Process a message to check if it's a ProBot credit transfer
      */
-    private function processMessage($message) {
+    public function processMessage($message) {
         // Check if message is from ProBot
         if (!isset($message['author']['id']) || $message['author']['id'] !== '282859044593598464') {
             return;
