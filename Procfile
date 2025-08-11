@@ -1,2 +1,1 @@
-web: php -S 0.0.0.0:$PORT
-bot: node discord-bot.js
+web: node start-services.js
