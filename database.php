@@ -202,6 +202,16 @@ class Database {
         return $stmt->fetchAll();
     }
     
+    public function getAllTransactions($limit = 50) {
+        $stmt = $this->pdo->prepare("
+            SELECT * FROM transactions 
+            ORDER BY created_at DESC 
+            LIMIT ?
+        ");
+        $stmt->execute([$limit]);
+        return $stmt->fetchAll();
+    }
+    
     // Broadcast history
     public function recordBroadcast($discordId, $guildId, $guildName, $message, $targetType, $messagesSent, $messagesFailed, $creditsUsed) {
         $user = $this->getUserByDiscordId($discordId);
