@@ -1,11 +1,8 @@
 [phases.setup]
-nixPkgs = ['nodejs', 'npm', 'php81', 'php81Packages.composer']
+nixPkgs = ['nodejs_18', 'php81']
 
 [phases.install]
 cmds = ['npm install']
 
-[phases.build]
-cmds = ['echo "Build completed"']
-
 [start]
-cmd = 'php -S 0.0.0.0:$PORT'
+cmd = 'npm start'
