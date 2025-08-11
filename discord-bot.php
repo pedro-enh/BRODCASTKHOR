@@ -93,15 +93,24 @@ class DiscordBot {
     }
     
     /**
-     * Process a message to check if it's a ProBot credit transfer
+     * Process a message to check if it's a ProBot credit transfer or bot command
      */
     public function processMessage($message) {
-        // Check if message is from ProBot
-        if (!isset($message['author']['id']) || $message['author']['id'] !== '282859044593598464') {
+        $content = $message['content'] ?? '';
+        $authorId = $message['author']['id'] ?? '';
+        
+        // Check for bot commands first
+        if (strpos($content, '!addcredits') === 0) {
+            $this->handleAddCreditsCommand($message);
             return;
         }
         
-        echo "📨 Processing ProBot message: " . substr($message['content'], 0, 100) . "...\n";
+        // Check if message is from ProBot
+        if ($authorId !== '282859044593598464') {
+            return;
+        }
+        
+        echo "📨 Processing ProBot message: " . substr($content, 0, 100) . "...\n";
         
         // Parse transfer data
         $transferData = $this->parseTransferMessage($message);
@@ -109,6 +118,165 @@ class DiscordBot {
         if ($transferData) {
             echo "💰 Found transfer: {$transferData['amount']} credits to {$transferData['recipient_id']}\n";
             $this->processTransfer($transferData, $message);
+        }
+    }
+    
+    /**
+     * Handle !addcredits command (owner only)
+     */
+    private function handleAddCreditsCommand($message) {
+        $content = $message['content'] ?? '';
+        $authorId = $message['author']['id'] ?? '';
+        $channelId = $message['channel_id'] ?? '';
+        $guildId = $message['guild_id'] ?? '';
+        
+        echo "🔧 Processing addcredits command from user {$authorId}\n";
+        
+        // Check if user is server owner
+        if (!$this->isServerOwner($authorId, $guildId)) {
+            $this->sendChannelMessage($channelId, [
+                'content' => "❌ **Access Denied**\nOnly the server owner can use this command."
+            ]);
+            return;
+        }
+        
+        // Parse command: !addcredits <discord_id> <probot_credits> [description]
+        $parts = explode(' ', $content, 4);
+        
+        if (count($parts) < 3) {
+            $this->sendChannelMessage($channelId, [
+                'content' => "❌ **Invalid Usage**\n\n**Correct format:**\n`!addcredits <discord_id> <probot_credits> [description]`\n\n**Example:**\n`!addcredits 123456789012345678 5000 Manual payment addition`"
+            ]);
+            return;
+        }
+        
+        $targetDiscordId = $parts[1];
+        $probotCredits = (int)$parts[2];
+        $description = $parts[3] ?? "Manual credit addition by server owner";
+        
+        // Validate inputs
+        if (!ctype_digit($targetDiscordId) || strlen($targetDiscordId) < 17) {
+            $this->sendChannelMessage($channelId, [
+                'content' => "❌ **Invalid Discord ID**\nPlease provide a valid Discord user ID (17-19 digits)."
+            ]);
+            return;
+        }
+        
+        if ($probotCredits < 500 || $probotCredits % 500 !== 0) {
+            $this->sendChannelMessage($channelId, [
+                'content' => "❌ **Invalid Amount**\nProBot credits must be at least 500 and divisible by 500.\n\n**Valid amounts:** 500, 1000, 1500, 2000, 2500, 5000, 10000, etc."
+            ]);
+            return;
+        }
+        
+        try {
+            // Calculate broadcast credits
+            $broadcastCredits = floor($probotCredits / 500);
+            
+            // Add credits to user account
+            $this->db->addCredits(
+                $targetDiscordId,
+                $broadcastCredits,
+                $description,
+                'manual_' . time() . '_' . $authorId
+            );
+            
+            // Send success message
+            $this->sendChannelMessage($channelId, [
+                'embed' => [
+                    'title' => '✅ Credits Added Successfully',
+                    'description' => "**Target User:** <@{$targetDiscordId}>\n**ProBot Credits:** {$probotCredits:,}\n**Broadcast Messages:** {$broadcastCredits}\n**Description:** {$description}",
+                    'color' => 0x00ff00,
+                    'footer' => [
+                        'text' => "Added by server owner • " . date('Y-m-d H:i:s')
+                    ]
+                ]
+            ]);
+            
+            // Send DM to target user
+            $this->sendDirectMessage($targetDiscordId, [
+                'content' => "✅ **Credits Added to Your Account!**\n\n" .
+                            "💰 **Received:** {$probotCredits:,} ProBot Credits\n" .
+                            "📨 **Added:** {$broadcastCredits} Broadcast Messages\n\n" .
+                            "🎉 Your credits have been added by the server owner!\n" .
+                            "🌐 Visit: https://discord-brodcast.up.railway.app/wallet.php"
+            ]);
+            
+            echo "✅ Successfully added {$broadcastCredits} credits for user {$targetDiscordId}\n";
+            
+        } catch (Exception $e) {
+            echo "❌ Failed to add credits: " . $e->getMessage() . "\n";
+            
+            $this->sendChannelMessage($channelId, [
+                'content' => "❌ **Error Adding Credits**\n\n" .
+                            "```\n" . $e->getMessage() . "\n```\n\n" .
+                            "Please make sure the user has registered on the website first."
+            ]);
+        }
+    }
+    
+    /**
+     * Check if user is server owner
+     */
+    private function isServerOwner($userId, $guildId) {
+        if (!$guildId) {
+            return false;
+        }
+        
+        $url = "https://discord.com/api/v10/guilds/{$guildId}";
+        
+        $headers = [
+            'Authorization: Bot ' . $this->botToken,
+            'Content-Type: application/json'
+        ];
+        
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        if ($httpCode === 200) {
+            $guild = json_decode($response, true);
+            return isset($guild['owner_id']) && $guild['owner_id'] === $userId;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Send message to channel
+     */
+    private function sendChannelMessage($channelId, $message) {
+        $url = "https://discord.com/api/v10/channels/{$channelId}/messages";
+        
+        $headers = [
+            'Authorization: Bot ' . $this->botToken,
+            'Content-Type: application/json'
+        ];
+        
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($message));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        if ($httpCode === 200) {
+            echo "📤 Sent message to channel {$channelId}\n";
+            return true;
+        } else {
+            echo "❌ Failed to send message to channel {$channelId}: HTTP {$httpCode}\n";
+            return false;
         }
     }
     
