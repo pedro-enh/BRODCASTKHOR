@@ -282,10 +282,16 @@ $broadcasts = $db->getUserBroadcasts($user['id'], 10);
                             <div>
                                 <h4>Payment Detection</h4>
                                 <p>If your payment isn't detected automatically, you can manually check for new ProBot transfers.</p>
-                                <button class="btn btn-info" onclick="runProbotMonitor()">
-                                    <i class="fas fa-sync"></i>
-                                    Check for Payments
-                                </button>
+                                <div class="payment-actions">
+                                    <button class="btn btn-info" onclick="runProbotMonitor()">
+                                        <i class="fas fa-sync"></i>
+                                        Check for Payments
+                                    </button>
+                                    <a href="manual-credit-add.php" class="btn btn-warning">
+                                        <i class="fas fa-tools"></i>
+                                        Manual Credit Addition
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>
