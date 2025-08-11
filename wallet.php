@@ -71,10 +71,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
         case 'run_probot_monitor':
             try {
-                require_once 'probot-monitor.php';
-                $monitor = new ProbotMonitor();
-                $monitor->checkForPayments();
-                echo json_encode(['success' => true, 'message' => 'ProBot monitor executed successfully']);
+                // Use the Discord bot to check for payments
+                require_once 'discord-bot.php';
+                $bot = new DiscordBot();
+                
+                // Get recent messages and process them
+                $messages = $bot->getChannelMessages(10);
+                $processed = 0;
+                
+                if ($messages) {
+                    foreach ($messages as $message) {
+                        if ($bot->processMessage($message)) {
+                            $processed++;
+                        }
+                    }
+                }
+                
+                echo json_encode([
+                    'success' => true, 
+                    'message' => "Payment check completed. Processed {$processed} new payments."
+                ]);
             } catch (Exception $e) {
                 echo json_encode(['success' => false, 'error' => $e->getMessage()]);
             }
