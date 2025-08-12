@@ -413,10 +413,10 @@ try {
                         <?php foreach ($recentTransactions as $transaction): ?>
                             <tr>
                                 <td><?php echo date('Y-m-d H:i', strtotime($transaction['created_at'])); ?></td>
-                                <td><?php echo htmlspecialchars($transaction['user_id']); ?></td>
+                                <td><?php echo htmlspecialchars($transaction['discord_id']); ?></td>
                                 <td>+<?php echo number_format($transaction['amount']); ?></td>
-                                <td><?php echo htmlspecialchars($transaction['description']); ?></td>
-                                <td><?php echo htmlspecialchars($transaction['admin_id']); ?></td>
+                                <td><?php echo htmlspecialchars($transaction['description'] ?? 'Admin credit addition'); ?></td>
+                                <td>Admin</td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
