@@ -1,0 +1,19 @@
+{
+    "name": "discord-broadcaster-pro/mongodb",
+    "description": "Discord Broadcaster Pro with MongoDB support",
+    "type": "project",
+    "require": {
+        "php": ">=7.4",
+        "mongodb/mongodb": "^1.15"
+    },
+    "autoload": {
+        "psr-4": {
+            "DiscordBroadcaster\\": "src/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
