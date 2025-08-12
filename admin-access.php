@@ -15,6 +15,9 @@ if (!isAdmin()) {
 
 $user = $_SESSION['discord_user'];
 
+// Initialize database
+$db = new Database();
+
 // Handle AJAX requests
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     header('Content-Type: application/json');
@@ -41,28 +44,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
         
         try {
-            $pdo = getDbConnection();
+            $pdo = $db->getPdo();
             
             // Check if user exists
-            $stmt = $pdo->prepare("SELECT * FROM users WHERE discord_id = ?");
-            $stmt->execute([$targetUserId]);
-            $targetUser = $stmt->fetch();
+            $targetUser = $db->getUserByDiscordId($targetUserId);
             
             if ($targetUser) {
                 // Update existing user
                 $newBalance = $targetUser['credits'] + $creditsAmount;
-                $stmt = $pdo->prepare("UPDATE users SET credits = ?, updated_at = NOW() WHERE discord_id = ?");
+                $stmt = $pdo->prepare("UPDATE users SET credits = ?, updated_at = CURRENT_TIMESTAMP WHERE discord_id = ?");
                 $stmt->execute([$newBalance, $targetUserId]);
             } else {
-                // Create new user
-                $stmt = $pdo->prepare("INSERT INTO users (discord_id, credits, created_at, updated_at) VALUES (?, ?, NOW(), NOW())");
-                $stmt->execute([$targetUserId, $creditsAmount]);
+                // Create new user with minimal data
+                $stmt = $pdo->prepare("INSERT INTO users (discord_id, username, discriminator, credits, created_at, updated_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)");
+                $stmt->execute([$targetUserId, 'Unknown', '0000', $creditsAmount]);
                 $newBalance = $creditsAmount;
+                $targetUser = ['id' => $pdo->lastInsertId()];
             }
             
             // Record transaction
-            $stmt = $pdo->prepare("INSERT INTO transactions (user_id, type, amount, description, admin_id, created_at) VALUES (?, 'admin_credit', ?, ?, ?, NOW())");
-            $stmt->execute([$targetUserId, $creditsAmount, $reason, $user['id']]);
+            $stmt = $pdo->prepare("INSERT INTO transactions (user_id, discord_id, type, amount, description, status, created_at) VALUES (?, ?, 'purchase', ?, ?, 'completed', CURRENT_TIMESTAMP)");
+            $stmt->execute([$targetUser['id'], $targetUserId, $creditsAmount, "Admin: " . $reason]);
             
             echo json_encode([
                 'success' => true, 
@@ -85,10 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
         
         try {
-            $pdo = getDbConnection();
-            $stmt = $pdo->prepare("SELECT * FROM users WHERE discord_id = ?");
-            $stmt->execute([$targetUserId]);
-            $targetUser = $stmt->fetch();
+            $targetUser = $db->getUserByDiscordId($targetUserId);
             
             if ($targetUser) {
                 echo json_encode([
