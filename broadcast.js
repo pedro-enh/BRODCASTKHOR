@@ -303,15 +303,12 @@ async function sendBroadcast() {
         const data = await response.json();
         
         if (data.success) {
-            if (data.broadcast_id) {
-                // Queue-based broadcast
-                showToast('Broadcast queued successfully!', 'success');
-                monitorBroadcastProgress(data.broadcast_id);
-            } else {
-                // Direct broadcast results
-                showBroadcastResults(data);
-            }
+            // Direct broadcast results
+            hideLoading();
+            showBroadcastResults(data);
+            showToast(data.message || `Broadcast completed! Sent ${data.sent_count} messages.`, 'success');
         } else {
+            hideLoading();
             showToast(`Broadcast failed: ${data.error}`, 'error');
             resetBroadcastButton();
         }
