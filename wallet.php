@@ -4,7 +4,7 @@ session_start();
 // Load configuration and database
 try {
     $config = require_once 'config.php';
-    require_once 'database.php';
+    require_once 'mongodb-database.php';
     require_once 'admin-helper.php';
 } catch (Exception $e) {
     die('Configuration or database error: ' . $e->getMessage());
@@ -18,7 +18,7 @@ if (!isset($_SESSION['discord_user'])) {
 
 $user = $_SESSION['discord_user'];
 $isAdmin = isAdmin();
-$db = new Database();
+$db = new MongoDatabase();
 
 // Create or update user in database
 $dbUser = $db->createOrUpdateUser($user);
