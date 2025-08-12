@@ -1858,6 +1858,31 @@ body {
     font-size: 0.875rem;
 }
 
+/* Admin Actions Grid */
+.admin-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.action-content {
+    flex: 1;
+}
+
+.action-content h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #495057;
+}
+
+.action-content p {
+    margin: 0;
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
 /* Enhanced Responsive Design */
 @media (max-width: 768px) {
     .broadcast-actions {
