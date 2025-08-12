@@ -1815,6 +1815,49 @@ body {
     transform: translateX(4px);
 }
 
+/* Admin Card Styles */
+.action-card.admin-card {
+    border-color: #ffc107;
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.05), rgba(255, 193, 7, 0.1));
+}
+
+.action-card.admin-card:hover {
+    border-color: #ffc107;
+    box-shadow: 0 8px 25px rgba(255, 193, 7, 0.2);
+}
+
+.action-card.admin-card .action-icon {
+    color: #ffc107;
+}
+
+.action-card.admin-card h3 {
+    color: #856404;
+}
+
+.action-card.admin-card .action-arrow {
+    color: #ffc107;
+}
+
+/* Admin Badge */
+.admin-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, #ffc107, #e0a800);
+    color: #212529;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-left: 0.5rem;
+}
+
+.admin-badge i {
+    font-size: 0.875rem;
+}
+
 /* Enhanced Responsive Design */
 @media (max-width: 768px) {
     .broadcast-actions {
