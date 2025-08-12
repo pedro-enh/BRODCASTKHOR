@@ -6,12 +6,16 @@
 
 session_start();
 require_once 'database.php';
+require_once 'admin-helper.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['discord_user'])) {
     header('Location: index.php');
     exit;
 }
+
+// Check if user is admin
+requireAdmin('index.php');
 
 $message = '';
 $error = '';
