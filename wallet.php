@@ -5,6 +5,7 @@ session_start();
 try {
     $config = require_once 'config.php';
     require_once 'database.php';
+    require_once 'admin-helper.php';
 } catch (Exception $e) {
     die('Configuration or database error: ' . $e->getMessage());
 }
@@ -16,6 +17,7 @@ if (!isset($_SESSION['discord_user'])) {
 }
 
 $user = $_SESSION['discord_user'];
+$isAdmin = isAdmin();
 $db = new Database();
 
 // Create or update user in database
@@ -117,6 +119,76 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ]);
             } catch (Exception $e) {
                 echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+            }
+            break;
+            
+        case 'admin_add_credits':
+            // Check if user is admin
+            if (!$isAdmin) {
+                echo json_encode(['success' => false, 'error' => 'Access denied. Admin privileges required.']);
+                break;
+            }
+            
+            $targetUserId = trim($input['targetUserId'] ?? '');
+            $creditsAmount = intval($input['creditsAmount'] ?? 0);
+            $reason = trim($input['reason'] ?? 'Manual credit addition by admin');
+            
+            // Validation
+            if (empty($targetUserId)) {
+                echo json_encode(['success' => false, 'error' => 'Target user ID is required']);
+                break;
+            }
+            
+            if (!preg_match('/^\d{17,19}$/', $targetUserId)) {
+                echo json_encode(['success' => false, 'error' => 'Invalid Discord ID format']);
+                break;
+            }
+            
+            if ($creditsAmount < 1 || $creditsAmount > 1000) {
+                echo json_encode(['success' => false, 'error' => 'Credits amount must be between 1 and 1000']);
+                break;
+            }
+            
+            try {
+                // Initialize database
+                require_once 'database.php';
+                $database = initializeDatabase();
+                
+                // Check if target user exists, if not create them
+                $stmt = $database->prepare("SELECT id, credits FROM users WHERE discord_id = ?");
+                $stmt->execute([$targetUserId]);
+                $targetUser = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                if (!$targetUser) {
+                    // Create new user
+                    $stmt = $database->prepare("INSERT INTO users (discord_id, username, credits, created_at) VALUES (?, ?, ?, ?)");
+                    $stmt->execute([$targetUserId, 'Unknown User', $creditsAmount, date('Y-m-d H:i:s')]);
+                    $targetUserId_db = $database->lastInsertId();
+                    $oldCredits = 0;
+                } else {
+                    // Update existing user
+                    $targetUserId_db = $targetUser['id'];
+                    $oldCredits = $targetUser['credits'];
+                    $newCredits = $oldCredits + $creditsAmount;
+                    
+                    $stmt = $database->prepare("UPDATE users SET credits = ?, updated_at = ? WHERE id = ?");
+                    $stmt->execute([$newCredits, date('Y-m-d H:i:s'), $targetUserId_db]);
+                }
+                
+                // Record transaction
+                $description = "Admin credit addition: {$creditsAmount} credits - {$reason}";
+                $stmt = $database->prepare("INSERT INTO transactions (user_id, type, amount, description, created_at) VALUES (?, ?, ?, ?, ?)");
+                $stmt->execute([$targetUserId_db, 'credit', $creditsAmount, $description, date('Y-m-d H:i:s')]);
+                
+                echo json_encode([
+                    'success' => true,
+                    'message' => "Successfully added {$creditsAmount} credits to user {$targetUserId}",
+                    'target_user' => $targetUserId,
+                    'credits_added' => $creditsAmount,
+                    'admin_user' => $user['username']
+                ]);
+            } catch (Exception $e) {
+                echo json_encode(['success' => false, 'error' => 'Database error: ' . $e->getMessage()]);
             }
             break;
             
@@ -281,22 +353,123 @@ $broadcasts = $db->getUserBroadcasts($user['id'], 10);
                             <i class="fas fa-robot"></i>
                             <div>
                                 <h4>Payment Detection</h4>
-                                <p>If your payment isn't detected automatically, you can manually check for new ProBot transfers.</p>
-                                <div class="payment-actions">
-                                    <button class="btn btn-info" onclick="runProbotMonitor()">
-                                        <i class="fas fa-sync"></i>
-                                        Check for Payments
-                                    </button>
-                                    <a href="manual-credit-add.php" class="btn btn-warning">
-                                        <i class="fas fa-tools"></i>
-                                        Manual Credit Addition
-                                    </a>
-                                </div>
+                                <p>If your payment isn't detected automatically, you can manually check for new ProBot transfers or ask the server owner to use the <code>!addcredits</code> command.</p>
+                                <button class="btn btn-info" onclick="runProbotMonitor()">
+                                    <i class="fas fa-sync"></i>
+                                    Check for Payments
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
             </section>
+
+            <?php if ($isAdmin): ?>
+            <!-- Admin Tools -->
+            <section class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-crown"></i> Admin Tools</h2>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-shield-alt"></i>
+                        <div>
+                            <h4>Administrator Access</h4>
+                            <p>You have admin privileges. Use these tools to manage user credits and payments.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="admin-actions">
+                        <div class="action-card admin-card">
+                            <div class="action-icon">
+                                <i class="fas fa-plus-circle"></i>
+                            </div>
+                            <div class="action-content">
+                                <h3>Add Credits</h3>
+                                <p>Manually add credits to any user's wallet</p>
+                            </div>
+                            <button class="btn btn-warning" onclick="openAddCreditsModal()">
+                                <i class="fas fa-plus"></i>
+                                Add Credits
+                            </button>
+                        </div>
+                        
+                        <div class="action-card admin-card">
+                            <div class="action-icon">
+                                <i class="fas fa-credit-card"></i>
+                            </div>
+                            <div class="action-content">
+                                <h3>Payment Checker</h3>
+                                <p>Process manual payments and transfers</p>
+                            </div>
+                            <a href="payment-checker.php" class="btn btn-warning">
+                                <i class="fas fa-external-link-alt"></i>
+                                Open Panel
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <?php endif; ?>
+
+            <!-- Add Credits Modal (Admin Only) -->
+            <?php if ($isAdmin): ?>
+            <div id="addCreditsModal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-plus-circle"></i> Add Credits to User</h3>
+                        <button class="modal-close" onclick="closeAddCreditsModal()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="addCreditsForm">
+                            <div class="input-group">
+                                <label for="targetUserId">Discord User ID</label>
+                                <input type="text" id="targetUserId" name="targetUserId" 
+                                       placeholder="123456789012345678" 
+                                       pattern="[0-9]{17,19}" 
+                                       required>
+                                <small>Enter the Discord ID of the user to add credits to</small>
+                            </div>
+                            
+                            <div class="input-group">
+                                <label for="creditsAmount">Credits to Add</label>
+                                <input type="number" id="creditsAmount" name="creditsAmount" 
+                                       placeholder="10" 
+                                       min="1" 
+                                       max="1000" 
+                                       required>
+                                <small>Number of broadcast messages to add</small>
+                            </div>
+                            
+                            <div class="input-group">
+                                <label for="adminReason">Reason (Optional)</label>
+                                <textarea id="adminReason" name="adminReason" 
+                                          placeholder="Manual credit addition by admin"
+                                          rows="3"></textarea>
+                                <small>Reason for adding credits (will appear in transaction history)</small>
+                            </div>
+                            
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i>
+                                <div>
+                                    <h4>Admin Credit Addition</h4>
+                                    <p>This will immediately add the specified credits to the user's wallet and create a transaction record.</p>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="closeAddCreditsModal()">Cancel</button>
+                        <button class="btn btn-warning" onclick="addCreditsToUser()">
+                            <i class="fas fa-plus"></i>
+                            Add Credits
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
 
             <!-- Payment Instructions Modal -->
             <div id="paymentModal" class="modal" style="display: none;">
