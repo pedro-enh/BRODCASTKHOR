@@ -1,7 +1,7 @@
 <?php
 session_start();
 require_once 'broadcast-queue.php';
-require_once 'database.php';
+require_once 'mongodb-database.php';
 
 // Load configuration
 try {
@@ -18,7 +18,7 @@ if (!isset($_SESSION['discord_user'])) {
 
 $user = $_SESSION['discord_user'];
 $queue = new BroadcastQueue();
-$db = new Database();
+$db = new MongoDatabase();
 
 // Handle AJAX requests
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
