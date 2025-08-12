@@ -116,8 +116,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
 // Get recent transactions for admin view
 try {
-    $pdo = getDbConnection();
-    $stmt = $pdo->prepare("SELECT t.*, u.discord_id as user_discord_id FROM transactions t LEFT JOIN users u ON t.user_id = u.discord_id WHERE t.type = 'admin_credit' ORDER BY t.created_at DESC LIMIT 20");
+    $pdo = $db->getPdo();
+    $stmt = $pdo->prepare("SELECT t.*, u.discord_id as user_discord_id FROM transactions t LEFT JOIN users u ON t.user_id = u.id WHERE t.type = 'purchase' AND t.description LIKE 'Admin:%' ORDER BY t.created_at DESC LIMIT 20");
     $stmt->execute();
     $recentTransactions = $stmt->fetchAll();
 } catch (Exception $e) {
