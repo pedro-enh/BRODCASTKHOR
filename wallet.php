@@ -245,7 +245,7 @@ $broadcasts = $db->getUserBroadcasts($user['id'], 10);
                         <?php
                         // Check if user is admin
                         $dbUser = $db->getUserByDiscordId($user['id']);
-                        if ($dbUser && $dbUser['is_admin'] == 1): ?>
+                        if ($dbUser && isset($dbUser['is_admin']) && $dbUser['is_admin'] == 1): ?>
                         <a href="admin-access.php" class="btn btn-warning btn-small">
                             <i class="fas fa-crown"></i>
                             Admin Access
