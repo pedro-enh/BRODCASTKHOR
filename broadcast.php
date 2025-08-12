@@ -243,24 +243,29 @@ function queueBroadcast($user, $guild_id, $message, $target_type, $delay, $enabl
     global $queue, $db;
     
     try {
-        // Get or create user in database
-        $user_data = $db->query("SELECT * FROM users WHERE discord_id = ?", [$user['id']]);
+        // Get user from database
+        $dbUser = $db->getUserByDiscordId($user['id']);
         
-        if (!$user_data) {
+        if (!$dbUser) {
             // Create user if doesn't exist
-            $db->query("INSERT INTO users (discord_id, username, credits) VALUES (?, ?, ?)", 
-                      [$user['id'], $user['username'], 0]);
-            $user_id = $db->getLastInsertId();
-        } else {
-            $user_id = $user_data[0]['id'];
+            $dbUser = $db->createOrUpdateUser($user);
         }
         
-        // Check if user has enough credits (simplified - you can add wallet integration here)
-        // For now, we'll allow free broadcasts
+        // Check if user has enough credits
+        $requiredCredits = 1; // 1 credit per broadcast
+        if ($dbUser['credits'] < $requiredCredits) {
+            return [
+                'success' => false,
+                'error' => "Insufficient credits. You need {$requiredCredits} credit(s) but have {$dbUser['credits']}. Please purchase more credits from your wallet."
+            ];
+        }
+        
+        // Deduct credits before starting broadcast
+        $db->spendCredits($user['id'], $requiredCredits, "Broadcast to guild {$guild_id}");
         
         // Add broadcast to queue
         $broadcast_id = $queue->addBroadcast(
-            $user_id,
+            $dbUser['id'],
             $user['id'],
             $guild_id,
             $message,
@@ -274,10 +279,13 @@ function queueBroadcast($user, $guild_id, $message, $target_type, $delay, $enabl
             return [
                 'success' => true,
                 'broadcast_id' => $broadcast_id,
-                'message' => 'Broadcast queued successfully! It will be processed in the background.',
-                'status' => 'queued'
+                'message' => 'Broadcast queued successfully! 1 credit has been deducted.',
+                'status' => 'queued',
+                'credits_used' => $requiredCredits
             ];
         } else {
+            // Refund credits if queue failed
+            $db->addCredits($user['id'], $requiredCredits, "Refund for failed broadcast queue");
             return [
                 'success' => false,
                 'error' => 'Failed to queue broadcast'
