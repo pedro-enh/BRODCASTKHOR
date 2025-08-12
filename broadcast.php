@@ -1,7 +1,7 @@
 <?php
 session_start();
 require_once 'broadcast-queue.php';
-require_once 'mongodb-database.php';
+require_once 'mongodb-simple.php';
 
 // Load configuration
 try {
