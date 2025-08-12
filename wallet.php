@@ -4,7 +4,7 @@ session_start();
 // Load configuration and database
 try {
     $config = require_once 'config.php';
-    require_once 'mongodb-database.php';
+    require_once 'mongodb-simple.php';
     require_once 'admin-helper.php';
 } catch (Exception $e) {
     die('Configuration or database error: ' . $e->getMessage());
