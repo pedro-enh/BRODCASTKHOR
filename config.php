@@ -19,6 +19,10 @@ return [
     // This value is loaded from .env file or Railway environment variables
     'BOT_TOKEN' => env('DISCORD_BOT_TOKEN', ''),
     
+    // Admin Configuration
+    // Add Discord IDs of users who can access admin features
+    'ADMIN_DISCORD_IDS' => [ '675332512414695441', ],
+    
     // Optional configuration
     'APP_ENV' => env('APP_ENV', 'production'),
     'DEBUG' => env('DEBUG', false)
