@@ -5,9 +5,13 @@ session_start();
 try {
     $config = require_once 'config.php';
     require_once 'admin-helper.php';
+    require_once 'database.php';
 } catch (Exception $e) {
     die('Configuration file not found. Please check your environment variables.');
 }
+
+// Initialize database
+$db = new Database();
 
 // Check if user is logged in
 $user = isset($_SESSION['discord_user']) ? $_SESSION['discord_user'] : null;
@@ -56,10 +60,15 @@ $isAdmin = $user ? isAdmin() : false;
                             <i class="fas fa-wallet"></i>
                             Wallet
                         </a>
-                        <a href="broadcast.php" class="btn btn-primary btn-small">
-                            <i class="fas fa-broadcast-tower"></i>
-                            Broadcast
+                        <?php
+                        // Check if user is admin
+                        $dbUser = $db->getUserByDiscordId($user['id']);
+                        if ($dbUser && $dbUser['is_admin'] == 1): ?>
+                        <a href="admin-access.php" class="btn btn-warning btn-small">
+                            <i class="fas fa-crown"></i>
+                            Admin Access
                         </a>
+                        <?php endif; ?>
                         <a href="logout.php" class="btn btn-secondary btn-small">
                             <i class="fas fa-sign-out-alt"></i>
                             Logout
