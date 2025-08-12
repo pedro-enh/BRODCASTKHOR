@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $target_type = $input['target_type'] ?? 'all';
             $delay = $input['delay'] ?? 2;
             $enable_mentions = $input['enable_mentions'] ?? false;
-            echo json_encode(queueBroadcast($user, $guild_id, $message, $target_type, $delay, $enable_mentions, $bot_token));
+            echo json_encode(sendBroadcastDirect($user, $guild_id, $message, $target_type, $delay, $enable_mentions, $bot_token));
             break;
             
         case 'get_broadcast_status':
@@ -236,6 +236,76 @@ function sendDirectMessage($bot_token, $channel_id, $message) {
         $error_data = json_decode($response, true);
         $error_message = isset($error_data['message']) ? $error_data['message'] : 'Unknown error';
         return ['success' => false, 'error' => $error_message];
+    }
+}
+
+function sendBroadcastDirect($user, $guild_id, $message, $target_type, $delay, $enable_mentions, $bot_token) {
+    global $db;
+    
+    try {
+        // Get user from database
+        $dbUser = $db->getUserByDiscordId($user['id']);
+        
+        if (!$dbUser) {
+            // Create user if doesn't exist
+            $dbUser = $db->createOrUpdateUser($user);
+        }
+        
+        // Check if user has enough credits
+        $requiredCredits = 1; // 1 credit per broadcast
+        if ($dbUser['credits'] < $requiredCredits) {
+            return [
+                'success' => false,
+                'error' => "Insufficient credits. You need {$requiredCredits} credit(s) but have {$dbUser['credits']}. Please purchase more credits from your wallet."
+            ];
+        }
+        
+        // Deduct credits before starting broadcast
+        $db->spendCredits($user['id'], $requiredCredits, "Broadcast to guild {$guild_id}");
+        
+        // Send broadcast directly
+        $result = sendBroadcast($bot_token, $guild_id, $message, $target_type, $delay, $enable_mentions);
+        
+        if ($result['success']) {
+            // Record broadcast in database
+            try {
+                $db->recordBroadcast(
+                    $user['id'],
+                    $guild_id,
+                    'Unknown Server',
+                    $message,
+                    $target_type,
+                    $result['sent_count'],
+                    $result['failed_count'],
+                    $requiredCredits
+                );
+            } catch (Exception $e) {
+                // Continue even if recording fails
+            }
+            
+            return [
+                'success' => true,
+                'sent_count' => $result['sent_count'],
+                'failed_count' => $result['failed_count'],
+                'total_targeted' => $result['total_targeted'],
+                'failed_users' => $result['failed_users'] ?? [],
+                'credits_used' => $requiredCredits,
+                'message' => "Broadcast completed! Sent {$result['sent_count']} messages. 1 credit was deducted."
+            ];
+        } else {
+            // Refund credits if broadcast failed
+            $db->addCredits($user['id'], $requiredCredits, "Refund for failed broadcast");
+            return [
+                'success' => false,
+                'error' => $result['error'] ?? 'Broadcast failed'
+            ];
+        }
+        
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'error' => 'Database error: ' . $e->getMessage()
+        ];
     }
 }
 
