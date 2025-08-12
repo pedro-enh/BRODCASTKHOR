@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $target_type = $input['target_type'] ?? 'all';
             $delay = $input['delay'] ?? 2;
             $enable_mentions = $input['enable_mentions'] ?? false;
-            echo json_encode(sendBroadcastDirect($user, $guild_id, $message, $target_type, $delay, $enable_mentions, $bot_token));
+            echo json_encode(queueBroadcast($user, $guild_id, $message, $target_type, $delay, $enable_mentions, $bot_token));
             break;
             
         case 'get_broadcast_status':
