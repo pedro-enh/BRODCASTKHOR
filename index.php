@@ -144,6 +144,19 @@ $isAdmin = $user ? isAdmin() : false;
                                 <i class="fas fa-arrow-right"></i>
                             </div>
                         </a>
+                        
+                        <?php if ($isAdmin): ?>
+                        <a href="payment-checker.php" class="action-card admin-card">
+                            <div class="action-icon">
+                                <i class="fas fa-crown"></i>
+                            </div>
+                            <h3>Admin Panel</h3>
+                            <p>Process payments and manage users</p>
+                            <div class="action-arrow">
+                                <i class="fas fa-arrow-right"></i>
+                            </div>
+                        </a>
+                        <?php endif; ?>
                     </div>
                 </div>
             </section>
