@@ -61,9 +61,8 @@ $isAdmin = $user ? isAdmin() : false;
                             Wallet
                         </a>
                         <?php
-                        // Check if user is admin
-                        $dbUser = $db->getUserByDiscordId($user['id']);
-                        if ($dbUser && isset($dbUser['is_admin']) && $dbUser['is_admin'] == 1): ?>
+                        // Check if user is admin using admin-helper
+                        if ($isAdmin): ?>
                         <a href="admin-access.php" class="btn btn-warning btn-small">
                             <i class="fas fa-crown"></i>
                             Admin Access
