@@ -41,7 +41,12 @@ class BroadcastQueue {
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         
         $stmt = $this->pdo->prepare($sql);
-        return $stmt->execute([$user_id, $discord_user_id, $guild_id, $message, $target_type, $delay, $enable_mentions, $bot_token]);
+        $success = $stmt->execute([$user_id, $discord_user_id, $guild_id, $message, $target_type, $delay, $enable_mentions, $bot_token]);
+        
+        if ($success) {
+            return $this->pdo->lastInsertId();
+        }
+        return false;
     }
     
     public function getNextPendingBroadcast() {
