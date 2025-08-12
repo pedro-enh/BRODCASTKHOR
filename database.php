@@ -94,18 +94,39 @@ class Database {
     
     // User management
     public function createOrUpdateUser($discordData) {
-        $stmt = $this->pdo->prepare("
-            INSERT OR REPLACE INTO users (discord_id, username, discriminator, avatar, email, updated_at)
-            VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-        ");
+        // Check if user exists first
+        $existingUser = $this->getUserByDiscordId($discordData['id']);
         
-        $stmt->execute([
-            $discordData['id'],
-            $discordData['username'],
-            $discordData['discriminator'],
-            $discordData['avatar'] ?? null,
-            $discordData['email'] ?? null
-        ]);
+        if ($existingUser) {
+            // Update existing user but keep credits and total_spent
+            $stmt = $this->pdo->prepare("
+                UPDATE users 
+                SET username = ?, discriminator = ?, avatar = ?, email = ?, updated_at = CURRENT_TIMESTAMP 
+                WHERE discord_id = ?
+            ");
+            
+            $stmt->execute([
+                $discordData['username'],
+                $discordData['discriminator'],
+                $discordData['avatar'] ?? null,
+                $discordData['email'] ?? null,
+                $discordData['id']
+            ]);
+        } else {
+            // Create new user
+            $stmt = $this->pdo->prepare("
+                INSERT INTO users (discord_id, username, discriminator, avatar, email, credits, total_spent, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, 0, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            ");
+            
+            $stmt->execute([
+                $discordData['id'],
+                $discordData['username'],
+                $discordData['discriminator'],
+                $discordData['avatar'] ?? null,
+                $discordData['email'] ?? null
+            ]);
+        }
         
         return $this->getUserByDiscordId($discordData['id']);
     }
