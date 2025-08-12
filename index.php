@@ -5,13 +5,13 @@ session_start();
 try {
     $config = require_once 'config.php';
     require_once 'admin-helper.php';
-    require_once 'database.php';
+    require_once 'mongodb-database.php';
 } catch (Exception $e) {
     die('Configuration file not found. Please check your environment variables.');
 }
 
 // Initialize database
-$db = new Database();
+$db = new MongoDatabase();
 
 // Check if user is logged in
 $user = isset($_SESSION['discord_user']) ? $_SESSION['discord_user'] : null;
