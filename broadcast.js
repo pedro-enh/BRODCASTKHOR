@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeEventListeners();
     updateCharacterCount();
     updateDelayValue();
+    startWorkerIfNeeded();
 });
 
 function initializeEventListeners() {
@@ -504,6 +505,22 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// Start worker if needed
+async function startWorkerIfNeeded() {
+    try {
+        const response = await fetch('start-worker.php');
+        const data = await response.json();
+        
+        if (data.success) {
+            console.log('Background worker started successfully');
+        } else {
+            console.log('Worker already running or failed to start');
+        }
+    } catch (error) {
+        console.error('Failed to start worker:', error);
+    }
 }
 
 // Export functions for global access
