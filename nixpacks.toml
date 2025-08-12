@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ['php81', 'php81Extensions.pdo', 'php81Extensions.mongodb', 'nodejs-18_x', 'composer']
+
+[phases.install]
+cmds = ['composer install --no-dev --optimize-autoloader']
+
+[phases.build]
+cmds = ['echo "Build completed"']
+
+[start]
+cmd = 'php -S 0.0.0.0:$PORT'
