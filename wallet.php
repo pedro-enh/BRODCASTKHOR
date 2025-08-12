@@ -242,6 +242,15 @@ $broadcasts = $db->getUserBroadcasts($user['id'], 10);
                             <i class="fas fa-broadcast-tower"></i>
                             Broadcast
                         </a>
+                        <?php
+                        // Check if user is admin
+                        $dbUser = $db->getUserByDiscordId($user['id']);
+                        if ($dbUser && $dbUser['is_admin'] == 1): ?>
+                        <a href="admin-access.php" class="btn btn-warning btn-small">
+                            <i class="fas fa-crown"></i>
+                            Admin Access
+                        </a>
+                        <?php endif; ?>
                         <a href="logout.php" class="btn btn-secondary btn-small">
                             <i class="fas fa-sign-out-alt"></i>
                             Logout
