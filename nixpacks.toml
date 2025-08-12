@@ -2,7 +2,7 @@
 nixPkgs = ['php81', 'php81Extensions.pdo', 'php81Extensions.mongodb', 'nodejs-18_x']
 
 [phases.install]
-cmds = ['composer install --no-dev --optimize-autoloader']
+cmds = ['echo "Skipping composer install - using manual setup"']
 
 [phases.build]
 cmds = ['echo "Build completed"']
