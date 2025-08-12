@@ -1,7 +1,8 @@
 <?php
-session_start();
 require_once 'admin-helper.php';
 require_once 'database.php';
+
+session_start();
 
 // Check if user is admin
 if (!isAdmin()) {
